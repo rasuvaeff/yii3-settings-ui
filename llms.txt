@@ -1,0 +1,98 @@
+# yii3-settings-ui
+
+Web admin panel for `rasuvaeff/yii3-settings`. Provides Yii invokable route actions that list, edit, update and reset runtime settings on top of `SettingsInspector` (read model) and `WritableSettingsProvider` (writes), with safe secret handling.
+
+Install:
+
+```
+composer require rasuvaeff/yii3-settings-ui
+```
+
+Also requires `rasuvaeff/yii3-settings` ^1.0 and a concrete settings provider (usually `rasuvaeff/yii3-settings-db`) bound to `SettingsInspector` + `WritableSettingsProvider`, plus a router implementation (e.g. `yiisoft/router-fastroute`) supplied by the host app, and Bootstrap 5 CSS (views use Bootstrap classes, no inline styles). The list grid is a `GridView` (yiisoft/yii-dataview) rendered server-side by `Service\SettingsGridFactory` from the app DI container — no host-side `WidgetFactory` bootstrap needed. The edit view uses `yiisoft/html` widgets.
+
+## Rules
+
+- PHP 8.3+, `declare(strict_types=1)`.
+- No built-in access control — protect routes via `middlewares.all` in params.
+- Unknown key -> 404. Read-only settings (`SettingDefinition::$readonly`) reject Update/Reset -> 403.
+- Secrets are never rendered. A blank secret submit keeps the current value (no `set()`). `SettingChanged` carries `null` value for secret keys and optional `actor`.
+- Input is validated against the `SettingDefinition` type; invalid input re-renders the edit page with HTTP 200 and does not write. `Array` settings are decoded from JSON.
+- CSRF is the application middleware's job; the form emits a hidden `_csrf` field when a `csrf_token` request attribute is present.
+
+## Routes
+
+- GET  `{prefix}`             -> `Yii\List\Action`   (name: `settings/list`)
+- GET  `{prefix}/{key}/edit`  -> `Yii\Edit\Action`   (name: `settings/edit`)
+- POST `{prefix}/{key}`       -> `Yii\Update\Action` (name: `settings/update`)
+- POST `{prefix}/{key}/reset` -> `Yii\Reset\Action`  (name: `settings/reset`)
+
+Default `{prefix}` = `/admin/settings` (`SettingsRoutes::PARAM_KEY.route_prefix`). Route names are overridable via `route_names`. URLs/redirects go through `Service\SettingsUrls` (over `UrlGeneratorInterface`), not string concatenation. `RequestBodyParser` is added automatically to POST routes; set `'body_parser' => false` in params to opt out.
+
+**Flat-route wiring** — add to `configuration.php`:
+```php
+'routes' => 'vendor/rasuvaeff/yii3-settings-ui/config/routes.php',
+```
+
+**Group-based admin panel** (most common):
+```php
+use Rasuvaeff\Yii3SettingsUi\SettingsRoutes;
+Group::create(prefix: '/admin')->routes(...SettingsRoutes::fromParams($params));
+```
+`fromParams()` keeps route registration and URL generation in sync automatically.
+
+For full control: `SettingsRoutes::create(prefix, names, middlewares, withBodyParser)`.
+
+## Config (params)
+
+```php
+use Rasuvaeff\Yii3SettingsUi\SettingsRoutes;
+
+'rasuvaeff/yii3-settings' => [
+    'definitions' => [
+        // label/group/help/choices/readonly live on the definition (single source of truth)
+        'orders.max_items' => ['type' => 'int', 'default' => 100, 'label' => 'Max items', 'group' => 'Orders'],
+        'billing.stripe_key' => ['type' => 'string', 'secret' => true, 'group' => 'Billing'],
+    ],
+],
+SettingsRoutes::PARAM_KEY => [
+    'route_prefix' => '/admin/settings',
+    'layout' => null,
+    'views' => ['list' => '/abs/path.php', 'edit' => '/abs/path.php'],
+    // Override only when your app uses a different naming convention:
+    'route_names' => ['list' => SettingsRoutes::LIST, 'edit' => SettingsRoutes::EDIT, ...],
+    'middlewares' => ['all' => [AuthMiddleware::class]],
+    // 'body_parser' => false,  // set if RequestBodyParser is already global
+],
+```
+
+`layout` controls the wrapper shell. `views.list` and `views.edit` override only the matching templates.
+
+## Public API
+
+- `SettingsRoutes::fromParams(array $params): list<Route>` - build routes from `$params[SettingsRoutes::PARAM_KEY]`; use inside a `Group`.
+- `SettingsRoutes::create(prefix, names, middlewares, withBodyParser): list<Route>` - build the 4 routes with full control (constants `LIST`/`EDIT`/`UPDATE`/`RESET`).
+- `Yii\List\Action`, `Yii\Edit\Action`, `Yii\Update\Action`, `Yii\Reset\Action` - Yii route actions (autowired); the host references these, not the services below.
+- `Form\SettingForm` - a `Yiisoft\FormModel\FormModel` with `present`, `value`, `isBlank()`, `getRules()`, `::fromParsedBody($body, $definition)`.
+- `Validation\SettingValueValidator::validate(SettingDefinition $def, mixed $raw): mixed` - validates + normalizes input to the declared type; throws `InvalidSettingValueException` (value-free message) on reject.
+- `Renderer\TemplateRendererInterface::render(string $view, array $params): ResponseInterface`; `Renderer\ViewTemplateRenderer` (default, over `WebViewRenderer`).
+- `Event\SettingChanged` - `::updated($key,$isSecret,$value,$actor)`, `::reset($key,$isSecret,$actor)`; `OPERATION_UPDATED` / `OPERATION_RESET`. `actor` is the current user ID or `null` for guests.
+- `Exception\InvalidSettingValueException`.
+
+Internal (`@internal`, auto-wired via `config/di.php`, not part of the public contract): `Service\ListSettingsResponder`, `Service\EditSettingResponder`, `Service\UpdateSettingProcessor`, `Service\ResetSettingProcessor`, `Service\SettingsUrls`, `Service\SettingsGridFactory`, `Renderer\EditPageRenderer`, `Validation\SettingValueRules`, `Validation\SettingValueNormalizer`, `View\SettingPresenter`.
+
+Setting metadata (label/group/help/choices/readonly) is read from `SettingDefinition` (`rasuvaeff/yii3-settings`), not a UI-side map.
+
+## Wiring example
+
+```php
+use Rasuvaeff\Yii3Settings\{SettingsInspector, WritableSettingsProvider};
+use Rasuvaeff\Yii3SettingsDb\DbSettingsProvider;
+
+return [
+    WritableSettingsProvider::class => DbSettingsProvider::class,
+    SettingsInspector::class => DbSettingsProvider::class,
+];
+```
+
+The package ships `config/di.php` (group `di`), `config/params.php`, `config/routes.php`.
+Routes may be decorated via params `middlewares.{all,list,edit,update,reset}` and templates overridden via `views.{list,edit}`.
