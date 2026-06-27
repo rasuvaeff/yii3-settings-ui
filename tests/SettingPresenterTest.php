@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingState;
 use Rasuvaeff\Yii3Settings\SettingType;
 use Rasuvaeff\Yii3SettingsUi\View\SettingPresenter;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Test;
 
-#[CoversClass(SettingPresenter::class)]
-final class SettingPresenterTest extends TestCase
+#[Test]
+#[Covers(SettingPresenter::class)]
+final class SettingPresenterTest
 {
-    #[Test]
     public function mapsDefinitionAndStateToViewFields(): void
     {
         $def = new SettingDefinition(
@@ -30,20 +30,19 @@ final class SettingPresenterTest extends TestCase
 
         $presenter = new SettingPresenter($def, $state, '/edit');
 
-        $this->assertSame('orders.max_items', $presenter->key);
-        $this->assertSame('Max items', $presenter->label);
-        $this->assertSame('int', $presenter->type);
-        $this->assertSame('db', $presenter->source);
-        $this->assertSame('Orders', $presenter->group);
-        $this->assertSame('Cart limit', $presenter->help);
-        $this->assertSame('/edit', $presenter->editUrl);
-        $this->assertFalse($presenter->readonly);
-        $this->assertTrue($presenter->hasStoredOverride);
-        $this->assertTrue($presenter->isWritable);
-        $this->assertSame('250', $presenter->displayValue);
+        Assert::same($presenter->key, 'orders.max_items');
+        Assert::same($presenter->label, 'Max items');
+        Assert::same($presenter->type, 'int');
+        Assert::same($presenter->source, 'db');
+        Assert::same($presenter->group, 'Orders');
+        Assert::same($presenter->help, 'Cart limit');
+        Assert::same($presenter->editUrl, '/edit');
+        Assert::false($presenter->readonly);
+        Assert::true($presenter->hasStoredOverride);
+        Assert::true($presenter->isWritable);
+        Assert::same($presenter->displayValue, '250');
     }
 
-    #[Test]
     public function exposesReadonlyFlagFromDefinition(): void
     {
         $def = new SettingDefinition(key: 'app.locked', type: SettingType::String, default: 'fixed', readonly: true);
@@ -51,10 +50,9 @@ final class SettingPresenterTest extends TestCase
 
         $presenter = new SettingPresenter($def, $state, '/edit');
 
-        $this->assertTrue($presenter->readonly);
+        Assert::true($presenter->readonly);
     }
 
-    #[Test]
     public function fallsBackToKeyForLabelAndNamespaceGroupWhenMetadataAbsent(): void
     {
         $def = new SettingDefinition(key: 'mail.from', type: SettingType::String);
@@ -62,11 +60,10 @@ final class SettingPresenterTest extends TestCase
 
         $presenter = new SettingPresenter($def, $state, '/edit');
 
-        $this->assertSame('mail.from', $presenter->label);
-        $this->assertSame('mail', $presenter->group);
+        Assert::same($presenter->label, 'mail.from');
+        Assert::same($presenter->group, 'mail');
     }
 
-    #[Test]
     public function masksSecretValueWhenOverrideExists(): void
     {
         $def = new SettingDefinition(key: 'billing.key', type: SettingType::String, secret: true);
@@ -74,12 +71,11 @@ final class SettingPresenterTest extends TestCase
 
         $presenter = new SettingPresenter($def, $state, '/edit');
 
-        $this->assertStringNotContainsString('sk_live_SECRET', $presenter->displayValue);
-        $this->assertStringContainsString('(set)', $presenter->displayValue);
-        $this->assertTrue($presenter->isSecret);
+        Assert::string($presenter->displayValue)->notContains('sk_live_SECRET');
+        Assert::string($presenter->displayValue)->contains('(set)');
+        Assert::true($presenter->isSecret);
     }
 
-    #[Test]
     public function showsNotSetWhenSecretHasNoOverride(): void
     {
         $def = new SettingDefinition(key: 'billing.key', type: SettingType::String, secret: true);
@@ -87,10 +83,9 @@ final class SettingPresenterTest extends TestCase
 
         $presenter = new SettingPresenter($def, $state, '/edit');
 
-        $this->assertStringContainsString('(not set)', $presenter->displayValue);
+        Assert::string($presenter->displayValue)->contains('(not set)');
     }
 
-    #[Test]
     public function rendersNullScalarAsEmptyString(): void
     {
         $def = new SettingDefinition(key: 'app.title', type: SettingType::String);
@@ -98,10 +93,9 @@ final class SettingPresenterTest extends TestCase
 
         $presenter = new SettingPresenter($def, $state, '/edit');
 
-        $this->assertSame('', $presenter->displayValue);
+        Assert::same($presenter->displayValue, '');
     }
 
-    #[Test]
     public function rendersArrayValueAsJson(): void
     {
         $def = new SettingDefinition(key: 'app.features', type: SettingType::Array, default: ['x' => 1]);
@@ -109,7 +103,7 @@ final class SettingPresenterTest extends TestCase
 
         $presenter = new SettingPresenter($def, $state, '/edit');
 
-        $this->assertSame('{"x":1}', $presenter->displayValue);
+        Assert::same($presenter->displayValue, '{"x":1}');
     }
 
     private function state(string $key, mixed $value, bool $override, string $source, bool $secret): SettingState

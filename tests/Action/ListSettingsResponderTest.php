@@ -4,37 +4,37 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests\Action;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
 use Rasuvaeff\Yii3SettingsUi\Http\Status;
 use Rasuvaeff\Yii3SettingsUi\Service\ListSettingsResponder;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeTemplateRenderer;
 use Rasuvaeff\Yii3SettingsUi\View\SettingPresenter;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Test;
 
-#[CoversClass(ListSettingsResponder::class)]
+#[Test]
+#[Covers(ListSettingsResponder::class)]
 final class ListSettingsResponderTest extends ActionTestCase
 {
-    #[Test]
     public function rendersFlatPresenterList(): void
     {
         $renderer = new FakeTemplateRenderer($this->http);
 
         $response = $this->listResponder($renderer)->respond();
 
-        $this->assertSame(Status::OK, $response->getStatusCode());
-        $this->assertSame('list', $renderer->view);
-        $this->assertArrayHasKey('settings', $renderer->parameters);
-        $this->assertArrayHasKey('gridHtml', $renderer->parameters);
-        $this->assertNotEmpty($renderer->parameters['gridHtml']);
+        Assert::same($response->getStatusCode(), Status::OK);
+        Assert::same($renderer->view, 'list');
+        Assert::array($renderer->parameters)->hasKeys('settings');
+        Assert::array($renderer->parameters)->hasKeys('gridHtml');
+        Assert::true($renderer->parameters['gridHtml'] !== '' && $renderer->parameters['gridHtml'] !== []);
 
         /** @var list<SettingPresenter> $settings */
         $settings = $renderer->parameters['settings'];
         $groups = array_map(static fn(SettingPresenter $s): string => $s->group, $settings);
-        $this->assertContains('mail', $groups);
-        $this->assertContains('billing', $groups);
+        Assert::contains($groups, 'mail');
+        Assert::contains($groups, 'billing');
     }
 
-    #[Test]
     public function secretValueIsMaskedAndPlaintextAbsentFromViewModel(): void
     {
         $renderer = new FakeTemplateRenderer($this->http);
@@ -48,16 +48,15 @@ final class ListSettingsResponderTest extends ActionTestCase
             JSON_THROW_ON_ERROR,
         );
 
-        $this->assertStringContainsString('(set)', $serialized);
-        $this->assertStringNotContainsString('sk_live', $serialized);
+        Assert::string($serialized)->contains('(set)');
+        Assert::string($serialized)->notContains('sk_live');
 
         /** @var string $gridHtml */
         $gridHtml = $renderer->parameters['gridHtml'];
-        $this->assertStringContainsString('(set)', $gridHtml);
-        $this->assertStringNotContainsString('sk_live', $gridHtml);
+        Assert::string($gridHtml)->contains('(set)');
+        Assert::string($gridHtml)->notContains('sk_live');
     }
 
-    #[Test]
     public function sortsSettingsByGroupThenKey(): void
     {
         $renderer = new FakeTemplateRenderer($this->http);
@@ -71,6 +70,6 @@ final class ListSettingsResponderTest extends ActionTestCase
         $expected = $keys;
         sort($expected);
 
-        $this->assertSame($expected, $keys);
+        Assert::same($keys, $expected);
     }
 }

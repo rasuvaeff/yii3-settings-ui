@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests\Yii\Edit;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
 use Rasuvaeff\Yii3SettingsUi\Http\Status;
 use Rasuvaeff\Yii3SettingsUi\Tests\Action\ActionTestCase;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeTemplateRenderer;
 use Rasuvaeff\Yii3SettingsUi\Yii\Edit\Action as YiiEditAction;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Test;
 
-#[CoversClass(YiiEditAction::class)]
+#[Test]
+#[Covers(YiiEditAction::class)]
 final class ActionTest extends ActionTestCase
 {
-    #[Test]
     public function invokesResponderWithoutRequestArgument(): void
     {
         $renderer = new FakeTemplateRenderer($this->http);
@@ -24,8 +25,8 @@ final class ActionTest extends ActionTestCase
 
         $response = $action->__invoke('mail.from');
 
-        $this->assertSame(Status::OK, $response->getStatusCode());
-        $this->assertSame('edit', $renderer->view);
-        $this->assertSame('mail.from', $renderer->parameters['key']);
+        Assert::same($response->getStatusCode(), Status::OK);
+        Assert::same($renderer->view, 'edit');
+        Assert::same($renderer->parameters['key'], 'mail.from');
     }
 }

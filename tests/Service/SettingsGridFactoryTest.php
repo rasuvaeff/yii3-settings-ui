@@ -4,71 +4,68 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests\Service;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingState;
 use Rasuvaeff\Yii3Settings\SettingType;
 use Rasuvaeff\Yii3SettingsUi\Service\SettingsGridFactory;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\TestContainer;
 use Rasuvaeff\Yii3SettingsUi\View\SettingPresenter;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 
-#[CoversClass(SettingsGridFactory::class)]
-final class SettingsGridFactoryTest extends TestCase
+#[Test]
+#[Covers(SettingsGridFactory::class)]
+final class SettingsGridFactoryTest
 {
     private SettingsGridFactory $factory;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         $this->factory = new SettingsGridFactory(new TestContainer());
     }
 
-    #[Test]
     public function rendersTableWithBootstrapClassesAndColumns(): void
     {
         $html = $this->factory->render([$this->presenter(value: 'Hello', label: 'Max items')]);
 
-        $this->assertStringContainsString('<table', $html);
-        $this->assertStringContainsString('table-striped', $html);
-        $this->assertStringContainsString('table-hover', $html);
-        $this->assertStringContainsString('Group', $html);
-        $this->assertStringContainsString('Key', $html);
-        $this->assertStringContainsString('Value', $html);
-        $this->assertStringContainsString('Type', $html);
-        $this->assertStringContainsString('Source', $html);
+        Assert::string($html)->contains('<table');
+        Assert::string($html)->contains('table-striped');
+        Assert::string($html)->contains('table-hover');
+        Assert::string($html)->contains('Group');
+        Assert::string($html)->contains('Key');
+        Assert::string($html)->contains('Value');
+        Assert::string($html)->contains('Type');
+        Assert::string($html)->contains('Source');
     }
 
-    #[Test]
     public function wrapsLabelInStrongAndRendersHelpWhenPresent(): void
     {
         $html = $this->factory->render([$this->presenter(value: '250', label: 'Max items', help: 'Cart limit')]);
 
-        $this->assertStringContainsString('<strong>Max items</strong>', $html);
-        $this->assertStringContainsString('<br>', $html);
-        $this->assertStringContainsString('<small class="text-muted">Cart limit</small>', $html);
+        Assert::string($html)->contains('<strong>Max items</strong>');
+        Assert::string($html)->contains('<br>');
+        Assert::string($html)->contains('<small class="text-muted">Cart limit</small>');
     }
 
-    #[Test]
     public function omitsHelpBlockWhenHelpAbsent(): void
     {
         $html = $this->factory->render([$this->presenter(value: 'Hello', label: 'Title')]);
 
-        $this->assertStringContainsString('<strong>Title</strong>', $html);
-        $this->assertStringNotContainsString('<small class="text-muted">', $html);
+        Assert::string($html)->contains('<strong>Title</strong>');
+        Assert::string($html)->notContains('<small class="text-muted">');
     }
 
-    #[Test]
     public function rendersTypeAndSourceAsBadges(): void
     {
         $html = $this->factory->render([$this->presenter(value: 'Hello')]);
 
-        $this->assertStringContainsString('<span class="badge text-bg-secondary">string</span>', $html);
-        $this->assertStringContainsString('<span class="badge text-bg-secondary">db</span>', $html);
+        Assert::string($html)->contains('<span class="badge text-bg-secondary">string</span>');
+        Assert::string($html)->contains('<span class="badge text-bg-secondary">db</span>');
     }
 
-    #[Test]
     public function masksSecretAndNeverLeaksPlaintext(): void
     {
         $def = new SettingDefinition(key: 'billing.stripe_key', type: SettingType::String, secret: true);
@@ -83,38 +80,34 @@ final class SettingsGridFactoryTest extends TestCase
 
         $html = $this->factory->render([new SettingPresenter($def, $state, '/edit')]);
 
-        $this->assertStringNotContainsString('sk_live_LEAKED', $html);
-        $this->assertStringContainsString('(set)', $html);
-        $this->assertStringContainsString('text-muted', $html);
+        Assert::string($html)->notContains('sk_live_LEAKED');
+        Assert::string($html)->contains('(set)');
+        Assert::string($html)->contains('text-muted');
     }
 
-    #[Test]
     public function doesNotMuteNonSecretValueCell(): void
     {
         $html = $this->factory->render([$this->presenter(value: 'Hello')]);
 
-        $this->assertStringContainsString('>Hello<', $html);
+        Assert::string($html)->contains('>Hello<');
     }
 
-    #[Test]
     public function escapesUntrustedValues(): void
     {
         $html = $this->factory->render([$this->presenter(value: '<script>alert(1)</script>')]);
 
-        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
-        $this->assertStringContainsString('&lt;script&gt;', $html);
+        Assert::string($html)->notContains('<script>alert(1)</script>');
+        Assert::string($html)->contains('&lt;script&gt;');
     }
 
-    #[Test]
     public function rendersEditLinkForWritableNonReadonlySetting(): void
     {
         $html = $this->factory->render([$this->presenter(value: 'Hello', editUrl: '/admin/settings/app.title/edit')]);
 
-        $this->assertStringContainsString('href="/admin/settings/app.title/edit"', $html);
-        $this->assertStringContainsString('btn-outline-primary', $html);
+        Assert::string($html)->contains('href="/admin/settings/app.title/edit"');
+        Assert::string($html)->contains('btn-outline-primary');
     }
 
-    #[Test]
     public function omitsEditLinkForReadonlySetting(): void
     {
         $def = new SettingDefinition(key: 'app.locked', type: SettingType::String, default: 'fixed', readonly: true);
@@ -129,10 +122,9 @@ final class SettingsGridFactoryTest extends TestCase
 
         $html = $this->factory->render([new SettingPresenter($def, $state, '/edit')]);
 
-        $this->assertStringNotContainsString('btn-outline-primary', $html);
+        Assert::string($html)->notContains('btn-outline-primary');
     }
 
-    #[Test]
     public function omitsEditLinkForNonWritableSetting(): void
     {
         $def = new SettingDefinition(key: 'app.title', type: SettingType::String);
@@ -147,7 +139,7 @@ final class SettingsGridFactoryTest extends TestCase
 
         $html = $this->factory->render([new SettingPresenter($def, $state, '/edit')]);
 
-        $this->assertStringNotContainsString('btn-outline-primary', $html);
+        Assert::string($html)->notContains('btn-outline-primary');
     }
 
     private function presenter(

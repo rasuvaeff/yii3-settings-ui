@@ -4,46 +4,45 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3SettingsUi\SettingsRoutes;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Test;
 use Yiisoft\Request\Body\RequestBodyParser;
 use Yiisoft\Router\Route;
 
-#[CoversClass(SettingsRoutes::class)]
-final class SettingsRoutesTest extends TestCase
+#[Test]
+#[Covers(SettingsRoutes::class)]
+final class SettingsRoutesTest
 {
-    #[Test]
     public function buildsFourRoutesWithDefaultNamesAndPrefix(): void
     {
         $routes = SettingsRoutes::create();
 
-        $this->assertCount(4, $routes);
+        Assert::count($routes, 4);
 
         $list = $routes[0];
         $edit = $routes[1];
         $update = $routes[2];
         $reset = $routes[3];
 
-        $this->assertSame(SettingsRoutes::LIST, $list->getData('name'));
-        $this->assertSame('/admin/settings', $list->getData('pattern'));
-        $this->assertSame(['GET'], $list->getData('methods'));
+        Assert::same($list->getData('name'), SettingsRoutes::LIST);
+        Assert::same($list->getData('pattern'), '/admin/settings');
+        Assert::same($list->getData('methods'), ['GET']);
 
-        $this->assertSame(SettingsRoutes::EDIT, $edit->getData('name'));
-        $this->assertSame('/admin/settings/{key}/edit', $edit->getData('pattern'));
-        $this->assertSame(['GET'], $edit->getData('methods'));
+        Assert::same($edit->getData('name'), SettingsRoutes::EDIT);
+        Assert::same($edit->getData('pattern'), '/admin/settings/{key}/edit');
+        Assert::same($edit->getData('methods'), ['GET']);
 
-        $this->assertSame(SettingsRoutes::UPDATE, $update->getData('name'));
-        $this->assertSame('/admin/settings/{key}', $update->getData('pattern'));
-        $this->assertSame(['POST'], $update->getData('methods'));
+        Assert::same($update->getData('name'), SettingsRoutes::UPDATE);
+        Assert::same($update->getData('pattern'), '/admin/settings/{key}');
+        Assert::same($update->getData('methods'), ['POST']);
 
-        $this->assertSame(SettingsRoutes::RESET, $reset->getData('name'));
-        $this->assertSame('/admin/settings/{key}/reset', $reset->getData('pattern'));
-        $this->assertSame(['POST'], $reset->getData('methods'));
+        Assert::same($reset->getData('name'), SettingsRoutes::RESET);
+        Assert::same($reset->getData('pattern'), '/admin/settings/{key}/reset');
+        Assert::same($reset->getData('methods'), ['POST']);
     }
 
-    #[Test]
     public function appliesCustomPrefixAndNames(): void
     {
         $routes = SettingsRoutes::create(
@@ -51,55 +50,50 @@ final class SettingsRoutesTest extends TestCase
             names: ['list' => 'admin/settings', 'edit' => 'admin/settings/edit'],
         );
 
-        $this->assertSame('admin/settings', $routes[0]->getData('name'));
-        $this->assertSame('/settings', $routes[0]->getData('pattern'));
-        $this->assertSame('admin/settings/edit', $routes[1]->getData('name'));
-        $this->assertSame('/settings/{key}/edit', $routes[1]->getData('pattern'));
+        Assert::same($routes[0]->getData('name'), 'admin/settings');
+        Assert::same($routes[0]->getData('pattern'), '/settings');
+        Assert::same($routes[1]->getData('name'), 'admin/settings/edit');
+        Assert::same($routes[1]->getData('pattern'), '/settings/{key}/edit');
         // Unspecified names fall back to defaults.
-        $this->assertSame(SettingsRoutes::UPDATE, $routes[2]->getData('name'));
+        Assert::same($routes[2]->getData('name'), SettingsRoutes::UPDATE);
     }
 
-    #[Test]
     public function getRoutesHaveNoExtraMiddlewaresByDefault(): void
     {
         $getRoutes = [SettingsRoutes::create()[0], SettingsRoutes::create()[1]];
 
         foreach ($getRoutes as $route) {
-            $this->assertCount(1, $route->getData('enabledMiddlewares'));
+            Assert::count($route->getData('enabledMiddlewares'), 1);
         }
     }
 
-    #[Test]
     public function postRoutesHaveBodyParserByDefault(): void
     {
         $postRoutes = [SettingsRoutes::create()[2], SettingsRoutes::create()[3]];
 
         foreach ($postRoutes as $route) {
-            $this->assertContains(RequestBodyParser::class, $route->getData('enabledMiddlewares'));
+            Assert::contains($route->getData('enabledMiddlewares'), RequestBodyParser::class);
         }
     }
 
-    #[Test]
     public function withBodyParserFalseSkipsBodyParser(): void
     {
         foreach (SettingsRoutes::create(withBodyParser: false) as $route) {
-            $this->assertCount(1, $route->getData('enabledMiddlewares'));
+            Assert::count($route->getData('enabledMiddlewares'), 1);
         }
     }
 
-    #[Test]
     public function attachesAllMiddlewareToEveryRoute(): void
     {
         $mw = static fn(): string => 'noop';
         $routes = SettingsRoutes::create(middlewares: ['all' => [$mw]]);
 
         foreach ($routes as $route) {
-            $this->assertInstanceOf(Route::class, $route);
-            $this->assertContains($mw, $route->getData('enabledMiddlewares'));
+            Assert::instanceOf($route, Route::class);
+            Assert::contains($route->getData('enabledMiddlewares'), $mw);
         }
     }
 
-    #[Test]
     public function fromParamsReadsConfigFromParamsArray(): void
     {
         $routes = SettingsRoutes::fromParams([
@@ -110,18 +104,17 @@ final class SettingsRoutesTest extends TestCase
             ],
         ]);
 
-        $this->assertSame('/my-settings', $routes[0]->getData('pattern'));
-        $this->assertSame('my/settings/list', $routes[0]->getData('name'));
+        Assert::same($routes[0]->getData('pattern'), '/my-settings');
+        Assert::same($routes[0]->getData('name'), 'my/settings/list');
         // body_parser: false — POST routes have only the action
-        $this->assertCount(1, $routes[2]->getData('enabledMiddlewares'));
+        Assert::count($routes[2]->getData('enabledMiddlewares'), 1);
     }
 
-    #[Test]
     public function fromParamsUsesDefaultsWhenConfigIsEmpty(): void
     {
         $routes = SettingsRoutes::fromParams([]);
 
-        $this->assertSame('/admin/settings', $routes[0]->getData('pattern'));
-        $this->assertSame(SettingsRoutes::LIST, $routes[0]->getData('name'));
+        Assert::same($routes[0]->getData('pattern'), '/admin/settings');
+        Assert::same($routes[0]->getData('name'), SettingsRoutes::LIST);
     }
 }

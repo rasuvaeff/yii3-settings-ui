@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests\Yii\Reset;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
 use Rasuvaeff\Yii3SettingsUi\Http\Status;
 use Rasuvaeff\Yii3SettingsUi\Tests\Action\ActionTestCase;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\RecordingWritableProvider;
 use Rasuvaeff\Yii3SettingsUi\Yii\Reset\Action as YiiResetAction;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Test;
 
-#[CoversClass(YiiResetAction::class)]
+#[Test]
+#[Covers(YiiResetAction::class)]
 final class ActionTest extends ActionTestCase
 {
-    #[Test]
     public function invokesProcessorWithKey(): void
     {
         $provider = new RecordingWritableProvider();
@@ -24,7 +25,7 @@ final class ActionTest extends ActionTestCase
 
         $response = $action->__invoke('mail.from');
 
-        $this->assertSame(Status::FOUND, $response->getStatusCode());
-        $this->assertContains('mail.from', $provider->removeCalls);
+        Assert::same($response->getStatusCode(), Status::FOUND);
+        Assert::contains($provider->removeCalls, 'mail.from');
     }
 }

@@ -5,39 +5,39 @@ declare(strict_types=1);
 namespace Rasuvaeff\Yii3SettingsUi\Tests\View;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingState;
 use Rasuvaeff\Yii3Settings\SettingType;
 use Rasuvaeff\Yii3SettingsUi\Form\SettingForm;
 use Rasuvaeff\Yii3SettingsUi\Renderer\ViewTemplateRenderer;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 use Yiisoft\Aliases\Aliases;
 use Yiisoft\View\WebView;
 use Yiisoft\Yii\View\Renderer\WebViewRenderer;
 
-#[CoversClass(ViewTemplateRenderer::class)]
-final class ViewRenderingTest extends TestCase
+#[Test]
+#[Covers(ViewTemplateRenderer::class)]
+final class ViewRenderingTest
 {
     private ViewTemplateRenderer $renderer;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         $this->renderer = $this->renderer();
     }
 
-    #[Test]
     public function listTemplateRendersProvidedGridHtml(): void
     {
         $html = $this->render('list', ['settings' => [], 'gridHtml' => '<table id="settings-grid"></table>']);
 
-        $this->assertStringContainsString('<table id="settings-grid"></table>', $html);
-        $this->assertStringContainsString('Settings', $html);
+        Assert::string($html)->contains('<table id="settings-grid"></table>');
+        Assert::string($html)->contains('Settings');
     }
 
-    #[Test]
     public function editSecretRendersEmptyPasswordField(): void
     {
         $def = new SettingDefinition(key: 'billing.stripe_key', type: SettingType::String, secret: true);
@@ -52,12 +52,11 @@ final class ViewRenderingTest extends TestCase
 
         $html = $this->render('edit', $this->editParams('billing.stripe_key', $def, $state));
 
-        $this->assertStringNotContainsString('sk_live_LEAKED', $html);
-        $this->assertStringContainsString('type="password"', $html);
-        $this->assertStringContainsString('Leave blank', $html);
+        Assert::string($html)->notContains('sk_live_LEAKED');
+        Assert::string($html)->contains('type="password"');
+        Assert::string($html)->contains('Leave blank');
     }
 
-    #[Test]
     public function editArrayRendersJsonTextarea(): void
     {
         $def = new SettingDefinition(key: 'app.features', type: SettingType::Array, default: ['search' => true]);
@@ -72,13 +71,12 @@ final class ViewRenderingTest extends TestCase
 
         $html = $this->render('edit', $this->editParams('app.features', $def, $state));
 
-        $this->assertStringContainsString('<textarea', $html);
-        $this->assertStringContainsString('"search"', $html);
+        Assert::string($html)->contains('<textarea');
+        Assert::string($html)->contains('"search"');
         // Structural HTML chars in textarea content must be escaped to prevent tag breakout.
-        $this->assertStringNotContainsString('</textarea><', $html);
+        Assert::string($html)->notContains('</textarea><');
     }
 
-    #[Test]
     public function editArrayTextareaEncodesSpecialCharsExactlyOnce(): void
     {
         $def = new SettingDefinition(key: 'app.payload', type: SettingType::Array, default: []);
@@ -94,12 +92,11 @@ final class ViewRenderingTest extends TestCase
         $html = $this->render('edit', $this->editParams('app.payload', $def, $state));
 
         // `<`/`&` encoded once (so the browser shows the real JSON), not doubled.
-        $this->assertStringContainsString('&lt;b&gt;', $html);
-        $this->assertStringNotContainsString('&amp;lt;', $html);
-        $this->assertStringNotContainsString('&amp;amp;', $html);
+        Assert::string($html)->contains('&lt;b&gt;');
+        Assert::string($html)->notContains('&amp;lt;');
+        Assert::string($html)->notContains('&amp;amp;');
     }
 
-    #[Test]
     public function editRendersWhenNoCsrfParameterIsInjected(): void
     {
         $def = new SettingDefinition(key: 'app.title', type: SettingType::String);
@@ -117,10 +114,9 @@ final class ViewRenderingTest extends TestCase
 
         $html = $this->render('edit', $params);
 
-        $this->assertStringContainsString('<form', $html);
+        Assert::string($html)->contains('<form');
     }
 
-    #[Test]
     public function editShowsValidationError(): void
     {
         $def = new SettingDefinition(key: 'orders.max_items', type: SettingType::Int, default: 100);
@@ -139,11 +135,10 @@ final class ViewRenderingTest extends TestCase
 
         $html = $this->render('edit', $params);
 
-        $this->assertStringContainsString('must be an integer', $html);
-        $this->assertStringContainsString('value="abc"', $html);
+        Assert::string($html)->contains('must be an integer');
+        Assert::string($html)->contains('value="abc"');
     }
 
-    #[Test]
     public function configuredListAndEditViewsOverrideDefaults(): void
     {
         $basePath = sys_get_temp_dir() . '/yii3-settings-ui-' . bin2hex(random_bytes(4));
@@ -166,8 +161,8 @@ final class ViewRenderingTest extends TestCase
         $listHtml = (string) $renderer->render('list', ['settings' => [], 'gridHtml' => ''])->getBody();
         $editHtml = (string) $renderer->render('edit', $this->editParams('app.title', new SettingDefinition(key: 'app.title', type: SettingType::String), new SettingState(key: 'app.title', effectiveValue: 'x', hasStoredOverride: false, source: 'default', isSecret: false, isWritable: true)))->getBody();
 
-        $this->assertStringContainsString('LIST OVERRIDE', $listHtml);
-        $this->assertStringContainsString('EDIT OVERRIDE', $editHtml);
+        Assert::string($listHtml)->contains('LIST OVERRIDE');
+        Assert::string($editHtml)->contains('EDIT OVERRIDE');
     }
 
     /**

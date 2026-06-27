@@ -4,32 +4,33 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingType;
 use Rasuvaeff\Yii3SettingsUi\Validation\SettingValueNormalizer;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Data\DataProvider;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 
-#[CoversClass(SettingValueNormalizer::class)]
-final class SettingValueNormalizerTest extends TestCase
+#[Test]
+#[Covers(SettingValueNormalizer::class)]
+final class SettingValueNormalizerTest
 {
     private SettingValueNormalizer $normalizer;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         $this->normalizer = new SettingValueNormalizer();
     }
 
-    #[Test]
     #[DataProvider('castProvider')]
     public function castsToNativeType(SettingType $type, mixed $raw, mixed $expected): void
     {
         $definition = new SettingDefinition(key: 'app.setting', type: $type);
 
-        $this->assertSame($expected, $this->normalizer->normalize($definition, $raw));
+        Assert::same($this->normalizer->normalize($definition, $raw), $expected);
     }
 
     /**

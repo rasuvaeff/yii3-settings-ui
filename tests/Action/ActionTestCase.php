@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Rasuvaeff\Yii3SettingsUi\Tests\Action;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
-use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
@@ -19,21 +18,23 @@ use Rasuvaeff\Yii3SettingsUi\Service\ResetSettingProcessor;
 use Rasuvaeff\Yii3SettingsUi\Service\SettingsGridFactory;
 use Rasuvaeff\Yii3SettingsUi\Service\SettingsUrls;
 use Rasuvaeff\Yii3SettingsUi\Service\UpdateSettingProcessor;
+use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeIdentityRepository;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeInspector;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeTemplateRenderer;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeUrlGenerator;
+use Rasuvaeff\Yii3SettingsUi\Tests\Double\RecordingEventDispatcher;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\TestContainer;
 use Rasuvaeff\Yii3SettingsUi\Validation\SettingValueValidator;
+use Testo\Lifecycle\BeforeTest;
 use Yiisoft\Auth\IdentityInterface;
-use Yiisoft\Auth\IdentityRepositoryInterface;
 use Yiisoft\User\CurrentUser;
 
-abstract class ActionTestCase extends TestCase
+abstract class ActionTestCase
 {
     protected Psr17Factory $http;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         $this->http = new Psr17Factory();
     }
@@ -134,7 +135,7 @@ abstract class ActionTestCase extends TestCase
             urls: $this->urls(),
             definitions: $this->definitions(),
             currentUser: $currentUser ?? $this->currentUser(null),
-            eventDispatcher: $eventDispatcher ?? $this->createMock(EventDispatcherInterface::class),
+            eventDispatcher: $eventDispatcher ?? new RecordingEventDispatcher(),
         );
     }
 
@@ -149,15 +150,15 @@ abstract class ActionTestCase extends TestCase
             urls: $this->urls(),
             definitions: $this->definitions(),
             currentUser: $currentUser ?? $this->currentUser(null),
-            eventDispatcher: $eventDispatcher ?? $this->createMock(EventDispatcherInterface::class),
+            eventDispatcher: $eventDispatcher ?? new RecordingEventDispatcher(),
         );
     }
 
     protected function currentUser(?string $id): CurrentUser
     {
         $currentUser = new CurrentUser(
-            identityRepository: $this->createMock(IdentityRepositoryInterface::class),
-            eventDispatcher: $this->createMock(EventDispatcherInterface::class),
+            identityRepository: new FakeIdentityRepository(),
+            eventDispatcher: new RecordingEventDispatcher(),
         );
 
         if ($id !== null) {
