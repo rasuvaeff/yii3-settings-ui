@@ -4,67 +4,62 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingType;
 use Rasuvaeff\Yii3SettingsUi\Form\SettingForm;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Data\DataProvider;
+use Testo\Test;
 use Yiisoft\Validator\Rule\Callback;
 
-#[CoversClass(SettingForm::class)]
-final class SettingFormTest extends TestCase
+#[Test]
+#[Covers(SettingForm::class)]
+final class SettingFormTest
 {
-    #[Test]
     public function readsValueFromScopedBody(): void
     {
         $form = SettingForm::fromParsedBody(['Setting' => ['value' => 'test@example.com']]);
 
-        $this->assertTrue($form->present);
-        $this->assertSame('test@example.com', $form->value);
+        Assert::true($form->present);
+        Assert::same($form->value, 'test@example.com');
     }
 
-    #[Test]
     public function absentWhenBodyIsNotArray(): void
     {
         $form = SettingForm::fromParsedBody(null);
 
-        $this->assertFalse($form->present);
-        $this->assertNull($form->value);
+        Assert::false($form->present);
+        Assert::null($form->value);
     }
 
-    #[Test]
     public function absentWhenScopeMissing(): void
     {
         $form = SettingForm::fromParsedBody(['Other' => ['value' => 'x']]);
 
-        $this->assertFalse($form->present);
+        Assert::false($form->present);
     }
 
-    #[Test]
     public function absentWhenValueKeyMissing(): void
     {
         $form = SettingForm::fromParsedBody(['Setting' => ['unrelated' => 'x']]);
 
-        $this->assertFalse($form->present);
+        Assert::false($form->present);
     }
 
-    #[Test]
     public function ignoresNonValueFields(): void
     {
         $form = SettingForm::fromParsedBody(['Setting' => ['value' => 'v', 'key' => 'injected', 'isSecret' => '1']]);
 
-        $this->assertSame('v', $form->value);
+        Assert::same($form->value, 'v');
     }
 
-    #[Test]
     #[DataProvider('blankProvider')]
     public function detectsBlank(bool $present, mixed $value, bool $expected): void
     {
         $form = new SettingForm(present: $present, value: $value);
 
-        $this->assertSame($expected, $form->isBlank());
+        Assert::same($form->isBlank(), $expected);
     }
 
     /**
@@ -79,7 +74,6 @@ final class SettingFormTest extends TestCase
         yield 'present zero string' => [true, '0', false];
     }
 
-    #[Test]
     public function getRulesAreBuiltForValueWhenDefinitionProvided(): void
     {
         $definition = new SettingDefinition(key: 'orders.max_items', type: SettingType::Int);
@@ -87,18 +81,17 @@ final class SettingFormTest extends TestCase
 
         $rules = [...$form->getRules()];
 
-        $this->assertArrayHasKey('value', $rules);
+        Assert::array($rules)->hasKeys('value');
         $valueRules = $rules['value'];
         \assert(\is_array($valueRules));
-        $this->assertNotEmpty($valueRules);
-        $this->assertContainsOnlyInstancesOf(Callback::class, $valueRules);
+        Assert::true((bool) $valueRules);
+        Assert::true($valueRules[0] instanceof Callback);
     }
 
-    #[Test]
     public function getRulesEmptyWithoutDefinition(): void
     {
         $form = new SettingForm();
 
-        $this->assertSame([], [...$form->getRules()]);
+        Assert::same([...$form->getRules()], []);
     }
 }

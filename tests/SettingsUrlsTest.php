@@ -4,30 +4,29 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3SettingsUi\Service\SettingsUrls;
 use Rasuvaeff\Yii3SettingsUi\SettingsRoutes;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeUrlGenerator;
 use Stringable;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Test;
 use Yiisoft\Router\UrlGeneratorInterface;
 
-#[CoversClass(SettingsUrls::class)]
-final class SettingsUrlsTest extends TestCase
+#[Test]
+#[Covers(SettingsUrls::class)]
+final class SettingsUrlsTest
 {
-    #[Test]
     public function generatesUrlsForDefaultRouteNames(): void
     {
         $urls = new SettingsUrls(urlGenerator: new FakeUrlGenerator());
 
-        $this->assertSame('/admin/settings', $urls->list());
-        $this->assertSame('/admin/settings/mail.from/edit', $urls->edit('mail.from'));
-        $this->assertSame('/admin/settings/mail.from', $urls->update('mail.from'));
-        $this->assertSame('/admin/settings/mail.from/reset', $urls->reset('mail.from'));
+        Assert::same($urls->list(), '/admin/settings');
+        Assert::same($urls->edit('mail.from'), '/admin/settings/mail.from/edit');
+        Assert::same($urls->update('mail.from'), '/admin/settings/mail.from');
+        Assert::same($urls->reset('mail.from'), '/admin/settings/mail.from/reset');
     }
 
-    #[Test]
     public function forwardsConfiguredRouteNamesToGenerator(): void
     {
         $recorder = new class implements UrlGeneratorInterface {
@@ -76,9 +75,9 @@ final class SettingsUrlsTest extends TestCase
         $urls->edit('k');
         $urls->update('k');
 
-        $this->assertSame(
-            ['admin/settings', 'admin/settings/edit', SettingsRoutes::UPDATE],
+        Assert::same(
             $recorder->names,
+            ['admin/settings', 'admin/settings/edit', SettingsRoutes::UPDATE],
         );
     }
 }

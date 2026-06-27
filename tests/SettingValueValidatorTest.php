@@ -4,33 +4,34 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingType;
 use Rasuvaeff\Yii3SettingsUi\Exception\InvalidSettingValueException;
 use Rasuvaeff\Yii3SettingsUi\Validation\SettingValueValidator;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Data\DataProvider;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 
-#[CoversClass(SettingValueValidator::class)]
-final class SettingValueValidatorTest extends TestCase
+#[Test]
+#[Covers(SettingValueValidator::class)]
+final class SettingValueValidatorTest
 {
     private SettingValueValidator $validator;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         $this->validator = new SettingValueValidator();
     }
 
-    #[Test]
     #[DataProvider('validProvider')]
     public function returnsNormalizedValue(SettingType $type, mixed $raw, mixed $expected): void
     {
         $definition = new SettingDefinition(key: 'app.setting', type: $type);
 
-        $this->assertSame($expected, $this->validator->validate($definition, $raw));
+        Assert::same($this->validator->validate($definition, $raw), $expected);
     }
 
     /**
@@ -55,15 +56,17 @@ final class SettingValueValidatorTest extends TestCase
         yield 'array passthrough' => [SettingType::Array, ['x' => 1], ['x' => 1]];
     }
 
-    #[Test]
     #[DataProvider('invalidProvider')]
     public function throwsOnInvalid(SettingType $type, mixed $raw): void
     {
         $definition = new SettingDefinition(key: 'app.setting', type: $type);
 
-        $this->expectException(InvalidSettingValueException::class);
-
-        $this->validator->validate($definition, $raw);
+        try {
+            $this->validator->validate($definition, $raw);
+            Assert::fail('Expected InvalidSettingValueException');
+        } catch (InvalidSettingValueException) {
+            // Expected
+        }
     }
 
     /**
@@ -80,17 +83,16 @@ final class SettingValueValidatorTest extends TestCase
         yield 'string from array' => [SettingType::String, ['nope']];
     }
 
-    #[Test]
     public function errorMessageNeverEchoesValue(): void
     {
         $definition = new SettingDefinition(key: 'billing.stripe_key', type: SettingType::Int);
 
         try {
             $this->validator->validate($definition, 'sk_live_secret_value');
-            $this->fail('Expected InvalidSettingValueException');
+            Assert::fail('Expected InvalidSettingValueException');
         } catch (InvalidSettingValueException $e) {
-            $this->assertStringNotContainsString('sk_live_secret_value', $e->getMessage());
-            $this->assertStringContainsString('billing.stripe_key', $e->getMessage());
+            Assert::string($e->getMessage())->notContains('sk_live_secret_value');
+            Assert::string($e->getMessage())->contains('billing.stripe_key');
         }
     }
 }

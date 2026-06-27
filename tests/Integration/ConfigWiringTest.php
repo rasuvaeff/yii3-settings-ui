@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\CoversNothing;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3SettingsUi\Renderer\EditPageRenderer;
 use Rasuvaeff\Yii3SettingsUi\Renderer\TemplateRendererInterface;
 use Rasuvaeff\Yii3SettingsUi\Service\EditSettingResponder;
@@ -20,6 +17,9 @@ use Rasuvaeff\Yii3SettingsUi\Yii\Edit\Action as EditAction;
 use Rasuvaeff\Yii3SettingsUi\Yii\List\Action as ListAction;
 use Rasuvaeff\Yii3SettingsUi\Yii\Reset\Action as ResetAction;
 use Rasuvaeff\Yii3SettingsUi\Yii\Update\Action as UpdateAction;
+use Testo\Assert;
+use Testo\Codecov\CoversNothing;
+use Testo\Test;
 
 /**
  * Exercises the package `config/di.php`, which is covered by neither cs (it only
@@ -27,10 +27,10 @@ use Rasuvaeff\Yii3SettingsUi\Yii\Update\Action as UpdateAction;
  * the exact set of registered service keys so a removed or renamed binding fails
  * the build, and checks that the class-string aliases map to their own class.
  */
+#[Test]
 #[CoversNothing]
-final class ConfigWiringTest extends TestCase
+final class ConfigWiringTest
 {
-    #[Test]
     public function registersExactlyTheExpectedServiceKeys(): void
     {
         $expected = [
@@ -53,19 +53,18 @@ final class ConfigWiringTest extends TestCase
         $actual = array_keys($this->di());
         sort($actual);
 
-        $this->assertSame($expected, $actual);
+        Assert::same($actual, $expected);
     }
 
-    #[Test]
     public function aliasesActionsAndValidatorToTheirOwnClass(): void
     {
         $di = $this->di();
 
-        $this->assertSame(SettingValueValidator::class, $di[SettingValueValidator::class]);
-        $this->assertSame(ListAction::class, $di[ListAction::class]);
-        $this->assertSame(EditAction::class, $di[EditAction::class]);
-        $this->assertSame(UpdateAction::class, $di[UpdateAction::class]);
-        $this->assertSame(ResetAction::class, $di[ResetAction::class]);
+        Assert::same($di[SettingValueValidator::class], SettingValueValidator::class);
+        Assert::same($di[ListAction::class], ListAction::class);
+        Assert::same($di[EditAction::class], EditAction::class);
+        Assert::same($di[UpdateAction::class], UpdateAction::class);
+        Assert::same($di[ResetAction::class], ResetAction::class);
     }
 
     /**
@@ -75,7 +74,7 @@ final class ConfigWiringTest extends TestCase
     {
         /** @var mixed $params */
         $params = require dirname(__DIR__, 2) . '/config/params.php';
-        $this->assertIsArray($params);
+        Assert::true(is_array($params));
 
         /** @var array<string, mixed> $definitions */
         $definitions = require dirname(__DIR__, 2) . '/config/di.php';

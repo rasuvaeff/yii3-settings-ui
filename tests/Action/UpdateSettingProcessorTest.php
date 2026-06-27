@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests\Action;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
 use Rasuvaeff\Yii3SettingsUi\Event\SettingChanged;
 use Rasuvaeff\Yii3SettingsUi\Http\Status;
 use Rasuvaeff\Yii3SettingsUi\Service\UpdateSettingProcessor;
@@ -13,9 +11,14 @@ use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeTemplateRenderer;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\RecordingEventDispatcher;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\RecordingWritableProvider;
 use Rasuvaeff\Yii3SettingsUi\Validation\SettingValueValidator;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 use Yiisoft\User\CurrentUser;
 
-#[CoversClass(UpdateSettingProcessor::class)]
+#[Test]
+#[Covers(UpdateSettingProcessor::class)]
 final class UpdateSettingProcessorTest extends ActionTestCase
 {
     private RecordingWritableProvider $provider;
@@ -24,8 +27,8 @@ final class UpdateSettingProcessorTest extends ActionTestCase
 
     private FakeTemplateRenderer $renderer;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         parent::setUp();
         $this->provider = new RecordingWritableProvider();
@@ -33,7 +36,6 @@ final class UpdateSettingProcessorTest extends ActionTestCase
         $this->renderer = new FakeTemplateRenderer($this->http);
     }
 
-    #[Test]
     public function returns404ForUnknownKey(): void
     {
         $response = $this->processor()->process(
@@ -41,10 +43,9 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => 'x']]),
         );
 
-        $this->assertSame(Status::NOT_FOUND, $response->getStatusCode());
+        Assert::same($response->getStatusCode(), Status::NOT_FOUND);
     }
 
-    #[Test]
     public function readonlySettingRejectsWrite(): void
     {
         $response = $this->processor()->process(
@@ -52,11 +53,10 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => 'hacked']]),
         );
 
-        $this->assertSame(Status::FORBIDDEN, $response->getStatusCode());
-        $this->assertSame([], $this->provider->setCalls);
+        Assert::same($response->getStatusCode(), Status::FORBIDDEN);
+        Assert::same($this->provider->setCalls, []);
     }
 
-    #[Test]
     public function blankSecretKeepsCurrentValue(): void
     {
         $response = $this->processor()->process(
@@ -64,12 +64,11 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => '']]),
         );
 
-        $this->assertSame(Status::FOUND, $response->getStatusCode());
-        $this->assertArrayNotHasKey('billing.stripe_key', $this->provider->setCalls);
-        $this->assertSame([], $this->events->events);
+        Assert::same($response->getStatusCode(), Status::FOUND);
+        Assert::array($this->provider->setCalls)->doesNotHaveKeys('billing.stripe_key');
+        Assert::same($this->events->events, []);
     }
 
-    #[Test]
     public function nonBlankSecretIsStored(): void
     {
         $response = $this->processor()->process(
@@ -77,11 +76,10 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => 'sk_new']]),
         );
 
-        $this->assertSame(Status::FOUND, $response->getStatusCode());
-        $this->assertSame('sk_new', $this->provider->setCalls['billing.stripe_key']);
+        Assert::same($response->getStatusCode(), Status::FOUND);
+        Assert::same($this->provider->setCalls['billing.stripe_key'], 'sk_new');
     }
 
-    #[Test]
     public function secretValueIsNotCarriedInEvent(): void
     {
         $this->processor(currentUser: $this->currentUser('user-1'))->process(
@@ -89,16 +87,15 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => 'sk_new']]),
         );
 
-        $this->assertCount(1, $this->events->events);
+        Assert::count($this->events->events, 1);
         $event = $this->events->events[0] ?? null;
-        $this->assertInstanceOf(SettingChanged::class, $event);
-        $this->assertSame('billing.stripe_key', $event->key);
-        $this->assertTrue($event->isSecret);
-        $this->assertNull($event->value);
-        $this->assertSame('user-1', $event->actor);
+        Assert::instanceOf($event, SettingChanged::class);
+        Assert::same($event->key, 'billing.stripe_key');
+        Assert::true($event->isSecret);
+        Assert::null($event->value);
+        Assert::same($event->actor, 'user-1');
     }
 
-    #[Test]
     public function validIntegerIsStored(): void
     {
         $response = $this->processor()->process(
@@ -106,11 +103,10 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => '250']]),
         );
 
-        $this->assertSame(Status::FOUND, $response->getStatusCode());
-        $this->assertSame(250, $this->provider->setCalls['orders.max_items']);
+        Assert::same($response->getStatusCode(), Status::FOUND);
+        Assert::same($this->provider->setCalls['orders.max_items'], 250);
     }
 
-    #[Test]
     public function invalidIntegerReRendersWithError(): void
     {
         $response = $this->processor()->process(
@@ -118,13 +114,12 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => 'abc']]),
         );
 
-        $this->assertSame(Status::OK, $response->getStatusCode());
-        $this->assertSame('edit', $this->renderer->view);
-        $this->assertNotNull($this->renderer->parameters['error']);
-        $this->assertSame([], $this->provider->setCalls);
+        Assert::same($response->getStatusCode(), Status::OK);
+        Assert::same($this->renderer->view, 'edit');
+        Assert::notNull($this->renderer->parameters['error']);
+        Assert::same($this->provider->setCalls, []);
     }
 
-    #[Test]
     public function validJsonArrayIsDecodedAndStored(): void
     {
         $this->processor()->process(
@@ -132,10 +127,9 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => '{"search":true,"beta":false}']]),
         );
 
-        $this->assertSame(['search' => true, 'beta' => false], $this->provider->setCalls['app.features']);
+        Assert::same($this->provider->setCalls['app.features'], ['search' => true, 'beta' => false]);
     }
 
-    #[Test]
     public function invalidJsonArrayReRendersWithError(): void
     {
         $response = $this->processor()->process(
@@ -143,11 +137,10 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => 'not json']]),
         );
 
-        $this->assertSame(Status::OK, $response->getStatusCode());
-        $this->assertSame([], $this->provider->setCalls);
+        Assert::same($response->getStatusCode(), Status::OK);
+        Assert::same($this->provider->setCalls, []);
     }
 
-    #[Test]
     public function checkedBooleanIsStoredTrue(): void
     {
         $this->processor()->process(
@@ -155,10 +148,9 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => '1']]),
         );
 
-        $this->assertTrue($this->provider->setCalls['mail.enabled']);
+        Assert::true($this->provider->setCalls['mail.enabled']);
     }
 
-    #[Test]
     public function uncheckedBooleanIsStoredFalse(): void
     {
         $this->processor()->process(
@@ -166,11 +158,10 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: []),
         );
 
-        $this->assertArrayHasKey('mail.enabled', $this->provider->setCalls);
-        $this->assertFalse($this->provider->setCalls['mail.enabled']);
+        Assert::array($this->provider->setCalls)->hasKeys('mail.enabled');
+        Assert::false($this->provider->setCalls['mail.enabled']);
     }
 
-    #[Test]
     public function nonSecretEventCarriesValue(): void
     {
         $this->processor(currentUser: $this->currentUser('user-1'))->process(
@@ -179,14 +170,13 @@ final class UpdateSettingProcessorTest extends ActionTestCase
         );
 
         $event = $this->events->events[0] ?? null;
-        $this->assertInstanceOf(SettingChanged::class, $event);
-        $this->assertFalse($event->isSecret);
-        $this->assertSame('new@example.com', $event->value);
-        $this->assertSame(SettingChanged::OPERATION_UPDATED, $event->operation);
-        $this->assertSame('user-1', $event->actor);
+        Assert::instanceOf($event, SettingChanged::class);
+        Assert::false($event->isSecret);
+        Assert::same($event->value, 'new@example.com');
+        Assert::same($event->operation, SettingChanged::OPERATION_UPDATED);
+        Assert::same($event->actor, 'user-1');
     }
 
-    #[Test]
     public function toleratesNullDispatcherAndCurrentUser(): void
     {
         $processor = new UpdateSettingProcessor(
@@ -203,8 +193,8 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => '250']]),
         );
 
-        $this->assertSame(Status::FOUND, $response->getStatusCode());
-        $this->assertSame(250, $this->provider->setCalls['orders.max_items']);
+        Assert::same($response->getStatusCode(), Status::FOUND);
+        Assert::same($this->provider->setCalls['orders.max_items'], 250);
     }
 
     private function processor(?CurrentUser $currentUser = null): UpdateSettingProcessor

@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests\Yii\List;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
 use Rasuvaeff\Yii3SettingsUi\Http\Status;
 use Rasuvaeff\Yii3SettingsUi\Tests\Action\ActionTestCase;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeTemplateRenderer;
 use Rasuvaeff\Yii3SettingsUi\Yii\List\Action as YiiListAction;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Test;
 
-#[CoversClass(YiiListAction::class)]
+#[Test]
+#[Covers(YiiListAction::class)]
 final class ActionTest extends ActionTestCase
 {
-    #[Test]
     public function invokesResponderAndRendersList(): void
     {
         $renderer = new FakeTemplateRenderer($this->http);
@@ -24,7 +25,7 @@ final class ActionTest extends ActionTestCase
 
         $response = $action->__invoke();
 
-        $this->assertSame(Status::OK, $response->getStatusCode());
-        $this->assertSame('list', $renderer->view);
+        Assert::same($response->getStatusCode(), Status::OK);
+        Assert::same($renderer->view, 'list');
     }
 }

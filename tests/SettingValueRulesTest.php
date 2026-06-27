@@ -4,27 +4,28 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingType;
 use Rasuvaeff\Yii3SettingsUi\Validation\SettingValueRules;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Data\DataProvider;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 use Yiisoft\Validator\Validator;
 
-#[CoversClass(SettingValueRules::class)]
-final class SettingValueRulesTest extends TestCase
+#[Test]
+#[Covers(SettingValueRules::class)]
+final class SettingValueRulesTest
 {
     private Validator $validator;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         $this->validator = new Validator();
     }
 
-    #[Test]
     #[DataProvider('acceptedProvider')]
     public function acceptsValidValue(SettingType $type, mixed $raw): void
     {
@@ -32,7 +33,7 @@ final class SettingValueRulesTest extends TestCase
 
         $result = $this->validator->validate($raw, SettingValueRules::for($definition));
 
-        $this->assertTrue($result->isValid());
+        Assert::true($result->isValid());
     }
 
     /**
@@ -54,7 +55,6 @@ final class SettingValueRulesTest extends TestCase
         yield 'array from json list' => [SettingType::Array, '[1,2,3]'];
     }
 
-    #[Test]
     #[DataProvider('rejectedProvider')]
     public function rejectsInvalidValue(SettingType $type, mixed $raw, string $expectedMessageFragment): void
     {
@@ -62,8 +62,8 @@ final class SettingValueRulesTest extends TestCase
 
         $result = $this->validator->validate($raw, SettingValueRules::for($definition));
 
-        $this->assertFalse($result->isValid());
-        $this->assertStringContainsString($expectedMessageFragment, $result->getErrorMessages()[0] ?? '');
+        Assert::false($result->isValid());
+        Assert::string($result->getErrorMessages()[0] ?? '')->contains($expectedMessageFragment);
     }
 
     /**
@@ -82,24 +82,22 @@ final class SettingValueRulesTest extends TestCase
         yield 'array from non-string non-array' => [SettingType::Array, 7, 'must be a JSON object or array'];
     }
 
-    #[Test]
     public function errorMessageCarriesKeyNotValue(): void
     {
         $definition = new SettingDefinition(key: 'billing.stripe_key', type: SettingType::Int);
 
         $result = $this->validator->validate('sk_live_secret_value', SettingValueRules::for($definition));
 
-        $this->assertFalse($result->isValid());
+        Assert::false($result->isValid());
         $message = $result->getErrorMessages()[0] ?? '';
-        $this->assertStringContainsString('billing.stripe_key', $message);
-        $this->assertStringNotContainsString('sk_live_secret_value', $message);
+        Assert::string($message)->contains('billing.stripe_key');
+        Assert::string($message)->notContains('sk_live_secret_value');
     }
 
-    #[Test]
     public function boolYieldsNoRules(): void
     {
         $definition = new SettingDefinition(key: 'app.flag', type: SettingType::Bool);
 
-        $this->assertSame([], SettingValueRules::for($definition));
+        Assert::same(SettingValueRules::for($definition), []);
     }
 }

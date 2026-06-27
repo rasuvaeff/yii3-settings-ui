@@ -4,42 +4,41 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests\Action;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
 use Rasuvaeff\Yii3SettingsUi\Form\SettingForm;
 use Rasuvaeff\Yii3SettingsUi\Http\Status;
 use Rasuvaeff\Yii3SettingsUi\Renderer\EditPageRenderer;
 use Rasuvaeff\Yii3SettingsUi\Service\EditSettingResponder;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeTemplateRenderer;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Test;
 
-#[CoversClass(EditPageRenderer::class)]
-#[CoversClass(EditSettingResponder::class)]
+#[Test]
+#[Covers(EditPageRenderer::class)]
+#[Covers(EditSettingResponder::class)]
 final class EditSettingResponderTest extends ActionTestCase
 {
-    #[Test]
     public function returns404ForUnknownKey(): void
     {
         $renderer = new FakeTemplateRenderer($this->http);
 
         $response = $this->editResponder($renderer)->respond('does.not.exist');
 
-        $this->assertSame(Status::NOT_FOUND, $response->getStatusCode());
+        Assert::same($response->getStatusCode(), Status::NOT_FOUND);
     }
 
-    #[Test]
     public function rendersEditForm(): void
     {
         $renderer = new FakeTemplateRenderer($this->http);
 
         $response = $this->editResponder($renderer)->respond('mail.from');
 
-        $this->assertSame(Status::OK, $response->getStatusCode());
-        $this->assertSame('edit', $renderer->view);
-        $this->assertSame('mail.from', $renderer->parameters['key']);
-        $this->assertNull($renderer->parameters['error']);
+        Assert::same($response->getStatusCode(), Status::OK);
+        Assert::same($renderer->view, 'edit');
+        Assert::same($renderer->parameters['key'], 'mail.from');
+        Assert::null($renderer->parameters['error']);
     }
 
-    #[Test]
     public function secretFormCarriesNoValue(): void
     {
         $renderer = new FakeTemplateRenderer($this->http);
@@ -48,6 +47,6 @@ final class EditSettingResponderTest extends ActionTestCase
 
         /** @var SettingForm $form */
         $form = $renderer->parameters['form'];
-        $this->assertNull($form->value);
+        Assert::null($form->value);
     }
 }
