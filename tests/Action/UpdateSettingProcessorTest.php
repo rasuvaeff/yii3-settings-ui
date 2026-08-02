@@ -19,6 +19,7 @@ use Yiisoft\User\CurrentUser;
 
 #[Test]
 #[Covers(UpdateSettingProcessor::class)]
+#[Covers(Status::class)]
 final class UpdateSettingProcessorTest extends ActionTestCase
 {
     private RecordingWritableProvider $provider;
@@ -44,6 +45,7 @@ final class UpdateSettingProcessorTest extends ActionTestCase
         );
 
         Assert::same($response->getStatusCode(), Status::NOT_FOUND);
+        Assert::same($response->getStatusCode(), 404);
     }
 
     public function readonlySettingRejectsWrite(): void
@@ -54,6 +56,7 @@ final class UpdateSettingProcessorTest extends ActionTestCase
         );
 
         Assert::same($response->getStatusCode(), Status::FORBIDDEN);
+        Assert::same($response->getStatusCode(), 403);
         Assert::same($this->provider->setCalls, []);
     }
 
@@ -65,6 +68,7 @@ final class UpdateSettingProcessorTest extends ActionTestCase
         );
 
         Assert::same($response->getStatusCode(), Status::FOUND);
+        Assert::same($response->getStatusCode(), 302);
         Assert::array($this->provider->setCalls)->doesNotHaveKeys('billing.stripe_key');
         Assert::same($this->events->events, []);
     }
@@ -115,6 +119,7 @@ final class UpdateSettingProcessorTest extends ActionTestCase
         );
 
         Assert::same($response->getStatusCode(), Status::OK);
+        Assert::same($response->getStatusCode(), 200);
         Assert::same($this->renderer->view, 'edit');
         Assert::notNull($this->renderer->parameters['error']);
         Assert::same($this->provider->setCalls, []);

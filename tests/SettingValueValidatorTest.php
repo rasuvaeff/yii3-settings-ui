@@ -16,6 +16,7 @@ use Testo\Test;
 
 #[Test]
 #[Covers(SettingValueValidator::class)]
+#[Covers(InvalidSettingValueException::class)]
 final class SettingValueValidatorTest
 {
     private SettingValueValidator $validator;
