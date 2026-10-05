@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests;
 
+use Rasuvaeff\Understudy\Understudy;
 use Rasuvaeff\Yii3SettingsUi\Service\SettingsUrls;
 use Rasuvaeff\Yii3SettingsUi\SettingsRoutes;
-use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeUrlGenerator;
-use Stringable;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Test;
 use Yiisoft\Router\UrlGeneratorInterface;
+
+use function Rasuvaeff\Understudy\when;
 
 #[Test]
 #[Covers(SettingsUrls::class)]
@@ -19,7 +20,13 @@ final class SettingsUrlsTest
 {
     public function generatesUrlsForDefaultRouteNames(): void
     {
-        $urls = new SettingsUrls(urlGenerator: new FakeUrlGenerator());
+        $generator = Understudy::for(UrlGeneratorInterface::class);
+        when(fn() => $generator->generate(SettingsRoutes::LIST))->returns('/admin/settings');
+        when(fn() => $generator->generate(SettingsRoutes::EDIT, ['key' => 'mail.from']))->returns('/admin/settings/mail.from/edit');
+        when(fn() => $generator->generate(SettingsRoutes::UPDATE, ['key' => 'mail.from']))->returns('/admin/settings/mail.from');
+        when(fn() => $generator->generate(SettingsRoutes::RESET, ['key' => 'mail.from']))->returns('/admin/settings/mail.from/reset');
+
+        $urls = new SettingsUrls(urlGenerator: $generator);
 
         Assert::same($urls->list(), '/admin/settings');
         Assert::same($urls->edit('mail.from'), '/admin/settings/mail.from/edit');
@@ -29,45 +36,10 @@ final class SettingsUrlsTest
 
     public function forwardsConfiguredRouteNamesToGenerator(): void
     {
-        $recorder = new class implements UrlGeneratorInterface {
-            /** @var list<string> */
-            public array $names = [];
-
-            #[\Override]
-            public function generate(string $name, array $arguments = [], array $queryParameters = [], ?string $hash = null): string
-            {
-                $this->names[] = $name;
-
-                return '/';
-            }
-
-            #[\Override]
-            public function generateAbsolute(string $name, array $arguments = [], array $queryParameters = [], ?string $hash = null, ?string $scheme = null, ?string $host = null): string
-            {
-                return '/';
-            }
-
-            #[\Override]
-            public function generateFromCurrent(array $replacedArguments, array $queryParameters = [], ?string $hash = null, ?string $fallbackRouteName = null): string
-            {
-                return '/';
-            }
-
-            #[\Override]
-            public function getUriPrefix(): string
-            {
-                return '';
-            }
-
-            #[\Override]
-            public function setUriPrefix(string $name): void {}
-
-            #[\Override]
-            public function setDefaultArgument(string $name, bool|float|int|string|Stringable|null $value): void {}
-        };
+        $generator = Understudy::for(UrlGeneratorInterface::class);
 
         $urls = new SettingsUrls(
-            urlGenerator: $recorder,
+            urlGenerator: $generator,
             routeNames: ['list' => 'admin/settings', 'edit' => 'admin/settings/edit'],
         );
 
@@ -75,9 +47,10 @@ final class SettingsUrlsTest
         $urls->edit('k');
         $urls->update('k');
 
-        Assert::same(
-            $recorder->names,
-            ['admin/settings', 'admin/settings/edit', SettingsRoutes::UPDATE],
+        Understudy::verifySequence(
+            fn() => $generator->generate('admin/settings'),
+            fn() => $generator->generate('admin/settings/edit', ['key' => 'k']),
+            fn() => $generator->generate(SettingsRoutes::UPDATE, ['key' => 'k']),
         );
     }
 }
