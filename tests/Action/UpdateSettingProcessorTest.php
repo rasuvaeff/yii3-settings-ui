@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3SettingsUi\Tests\Action;
 
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Rasuvaeff\Understudy\Arg;
+use Rasuvaeff\Understudy\Captor;
+use Rasuvaeff\Understudy\Understudy;
 use Rasuvaeff\Yii3SettingsUi\Event\SettingChanged;
 use Rasuvaeff\Yii3SettingsUi\Http\Status;
+use Rasuvaeff\Yii3SettingsUi\Renderer\TemplateRendererInterface;
 use Rasuvaeff\Yii3SettingsUi\Service\UpdateSettingProcessor;
-use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeTemplateRenderer;
-use Rasuvaeff\Yii3SettingsUi\Tests\Double\RecordingEventDispatcher;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\RecordingWritableProvider;
 use Rasuvaeff\Yii3SettingsUi\Validation\SettingValueValidator;
 use Testo\Assert;
@@ -17,6 +20,9 @@ use Testo\Lifecycle\BeforeTest;
 use Testo\Test;
 use Yiisoft\User\CurrentUser;
 
+use function Rasuvaeff\Understudy\verify;
+use function Rasuvaeff\Understudy\when;
+
 #[Test]
 #[Covers(UpdateSettingProcessor::class)]
 #[Covers(Status::class)]
@@ -24,17 +30,21 @@ final class UpdateSettingProcessorTest extends ActionTestCase
 {
     private RecordingWritableProvider $provider;
 
-    private RecordingEventDispatcher $events;
+    private EventDispatcherInterface $events;
 
-    private FakeTemplateRenderer $renderer;
+    private Captor $dispatchedEvents;
+
+    private TemplateRendererInterface $renderer;
 
     #[BeforeTest]
     public function setUp(): void
     {
         parent::setUp();
         $this->provider = new RecordingWritableProvider();
-        $this->events = new RecordingEventDispatcher();
-        $this->renderer = new FakeTemplateRenderer($this->http);
+        $this->renderer = $this->renderer();
+        $this->dispatchedEvents = Arg::captor(SettingChanged::class);
+        $this->events = Understudy::for(EventDispatcherInterface::class);
+        when(fn() => $this->events->dispatch($this->dispatchedEvents->capture()));
     }
 
     public function returns404ForUnknownKey(): void
@@ -70,7 +80,8 @@ final class UpdateSettingProcessorTest extends ActionTestCase
         Assert::same($response->getStatusCode(), Status::FOUND);
         Assert::same($response->getStatusCode(), 302);
         Assert::array($this->provider->setCalls)->doesNotHaveKeys('billing.stripe_key');
-        Assert::same($this->events->events, []);
+
+        Understudy::unused($this->events);
     }
 
     public function nonBlankSecretIsStored(): void
@@ -91,9 +102,8 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => 'sk_new']]),
         );
 
-        Assert::count($this->events->events, 1);
-        $event = $this->events->events[0] ?? null;
-        Assert::instanceOf($event, SettingChanged::class);
+        Assert::count($this->dispatchedEvents->all(), 1);
+        $event = $this->dispatchedEvents->last();
         Assert::same($event->key, 'billing.stripe_key');
         Assert::true($event->isSecret);
         Assert::null($event->value);
@@ -120,8 +130,9 @@ final class UpdateSettingProcessorTest extends ActionTestCase
 
         Assert::same($response->getStatusCode(), Status::OK);
         Assert::same($response->getStatusCode(), 200);
-        Assert::same($this->renderer->view, 'edit');
-        Assert::notNull($this->renderer->parameters['error']);
+
+        verify(fn() => $this->renderer->render('edit'));
+        Assert::notNull($this->renderedParameters()['error']);
         Assert::same($this->provider->setCalls, []);
     }
 
@@ -174,8 +185,7 @@ final class UpdateSettingProcessorTest extends ActionTestCase
             $this->request('POST', parsedBody: ['Setting' => ['value' => 'new@example.com']]),
         );
 
-        $event = $this->events->events[0] ?? null;
-        Assert::instanceOf($event, SettingChanged::class);
+        $event = $this->dispatchedEvents->last();
         Assert::false($event->isSecret);
         Assert::same($event->value, 'new@example.com');
         Assert::same($event->operation, SettingChanged::OPERATION_UPDATED);

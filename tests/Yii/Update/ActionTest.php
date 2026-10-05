@@ -6,7 +6,6 @@ namespace Rasuvaeff\Yii3SettingsUi\Tests\Yii\Update;
 
 use Rasuvaeff\Yii3SettingsUi\Http\Status;
 use Rasuvaeff\Yii3SettingsUi\Tests\Action\ActionTestCase;
-use Rasuvaeff\Yii3SettingsUi\Tests\Double\FakeTemplateRenderer;
 use Rasuvaeff\Yii3SettingsUi\Tests\Double\RecordingWritableProvider;
 use Rasuvaeff\Yii3SettingsUi\Yii\Update\Action as YiiUpdateAction;
 use Testo\Assert;
@@ -20,7 +19,7 @@ final class ActionTest extends ActionTestCase
     public function invokesProcessorWithKeyAndRequest(): void
     {
         $provider = new RecordingWritableProvider();
-        $renderer = new FakeTemplateRenderer($this->http);
+        $renderer = $this->renderer();
         $action = new YiiUpdateAction(
             processor: $this->updateProcessor(provider: $provider, renderer: $renderer),
         );
