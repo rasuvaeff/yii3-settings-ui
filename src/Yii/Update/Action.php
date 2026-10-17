@@ -7,7 +7,7 @@ namespace Rasuvaeff\Yii3SettingsUi\Yii\Update;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Rasuvaeff\Yii3SettingsUi\Service\UpdateSettingProcessor;
-use Yiisoft\Router\HydratorAttribute\RouteArgument;
+use Yiisoft\Router\CurrentRoute;
 
 /**
  * @api
@@ -16,13 +16,14 @@ final readonly class Action
 {
     public function __construct(
         private UpdateSettingProcessor $processor,
+        private CurrentRoute $currentRoute,
     ) {}
 
-    public function __invoke(
-        #[RouteArgument('key')]
-        string $key,
-        ServerRequestInterface $request,
-    ): ResponseInterface {
-        return $this->processor->process(key: $key, request: $request);
+    public function __invoke(ServerRequestInterface $request): ResponseInterface
+    {
+        return $this->processor->process(
+            key: (string) $this->currentRoute->getArgument('key'),
+            request: $request,
+        );
     }
 }

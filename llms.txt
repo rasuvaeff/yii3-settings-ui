@@ -28,6 +28,8 @@ Also requires `rasuvaeff/yii3-settings` ^1.0 and a concrete settings provider (u
 
 Default `{prefix}` = `/admin/settings` (`SettingsRoutes::PARAM_KEY.route_prefix`). Route names are overridable via `route_names`. URLs/redirects go through `Service\SettingsUrls` (over `UrlGeneratorInterface`), not string concatenation. `RequestBodyParser` is added automatically to POST routes; set `'body_parser' => false` in params to opt out.
 
+Edit/Update/Reset actions read `{key}` from a constructor-injected `Yiisoft\Router\CurrentRoute` — they work with a plain middleware dispatcher, no `yiisoft/input-http` `HydratorAttributeParametersResolver` binding required. A missing/empty argument degrades to the unknown-key 404 path.
+
 **Flat-route wiring** — add to `configuration.php`:
 ```php
 'routes' => 'vendor/rasuvaeff/yii3-settings-ui/config/routes.php',
@@ -71,7 +73,7 @@ SettingsRoutes::PARAM_KEY => [
 
 - `SettingsRoutes::fromParams(array $params): list<Route>` - build routes from `$params[SettingsRoutes::PARAM_KEY]`; use inside a `Group`.
 - `SettingsRoutes::create(prefix, names, middlewares, withBodyParser): list<Route>` - build the 4 routes with full control (constants `LIST`/`EDIT`/`UPDATE`/`RESET`).
-- `Yii\List\Action`, `Yii\Edit\Action`, `Yii\Update\Action`, `Yii\Reset\Action` - Yii route actions (autowired); the host references these, not the services below.
+- `Yii\List\Action`, `Yii\Edit\Action`, `Yii\Update\Action`, `Yii\Reset\Action` - Yii route actions (autowired; Edit/Update/Reset take `Yiisoft\Router\CurrentRoute` in the constructor and read `{key}` from it); the host references these, not the services below.
 - `Form\SettingForm` - a `Yiisoft\FormModel\FormModel` with `present`, `value`, `isBlank()`, `getRules()`, `::fromParsedBody($body, $definition)`.
 - `Validation\SettingValueValidator::validate(SettingDefinition $def, mixed $raw): mixed` - validates + normalizes input to the declared type; throws `InvalidSettingValueException` (value-free message) on reject.
 - `Renderer\TemplateRendererInterface::render(string $view, array $params): ResponseInterface`; `Renderer\ViewTemplateRenderer` (default, over `WebViewRenderer`).

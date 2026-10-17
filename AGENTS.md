@@ -84,6 +84,14 @@ make release-check
   `settings` (list<SettingPresenter>) so a custom view can build its own grid.
 - CSRF is the application middleware's responsibility; the edit form emits a
   hidden `_csrf` field when a `csrf_token` request attribute is present.
+- Actions must read route arguments (`{key}`) from a constructor-injected
+  `Yiisoft\Router\CurrentRoute`, never from `#[RouteArgument]`-hydrated
+  parameters — the attribute only resolves when the host app wires
+  `yiisoft/input-http`'s `HydratorAttributeParametersResolver` into its
+  middleware dispatcher, which this package must not require. A missing
+  argument degrades to `''` and hits the unknown-key 404 path.
+  `tests/Yii/RouteDispatchTest.php` pins this by dispatching real requests
+  through `yiisoft/router` with a plain `MiddlewareFactory`.
 - `yiisoft/router` needs a concrete router implementation
   (e.g. `yiisoft/router-fastroute`) — provided by the host app, and as a dev
   dependency here.

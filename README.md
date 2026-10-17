@@ -99,6 +99,8 @@ return [
 
 `middlewares.{all,list,edit,update,reset}` — add middlewares per slot without forking the routes. `RequestBodyParser` is added automatically to the POST routes (update, reset); set `'body_parser' => false` in params to opt out.
 
+The actions read the `{key}` route argument from a constructor-injected `Yiisoft\Router\CurrentRoute`, so they work with a plain middleware dispatcher — no `yiisoft/input-http` `HydratorAttributeParametersResolver` binding is required in the host app. (The `->action(SomeAction::class)` route form the package ships needs `yiisoft/middleware-dispatcher` 5.2+, which every current `yiisoft/router` application resolves.)
+
 URLs and redirects are generated through the router (`UrlGeneratorInterface`) by route name; links stay correct under any prefix or subdomain. Override `route_names` in params when your app uses a different naming convention.
 
 ### Flat-route wiring
@@ -148,9 +150,9 @@ The package does not enforce access control internally. Protect routes via `midd
 |---|---|
 | `SettingsRoutes` | Builds the 4 routes; `fromParams($params)` for group-based panels, `create()` for full control |
 | `Yii\List\Action` | GET flat grid (Group/Key/Value/Type/Source), secrets masked |
-| `Yii\Edit\Action` | GET type-aware edit form |
-| `Yii\Update\Action` | POST validate + save, re-render on invalid input |
-| `Yii\Reset\Action` | POST remove override -> config/default |
+| `Yii\Edit\Action` | GET type-aware edit form; `{key}` comes from the injected `CurrentRoute` |
+| `Yii\Update\Action` | POST validate + save, re-render on invalid input; `{key}` comes from the injected `CurrentRoute` |
+| `Yii\Reset\Action` | POST remove override -> config/default; `{key}` comes from the injected `CurrentRoute` |
 | `Form\SettingForm` | Submitted edit input (`present` + `value`) |
 | `Validation\SettingValueValidator` | Validates + normalizes submitted input against the setting type (value-free error messages) |
 | `Renderer\TemplateRendererInterface` | Rendering seam (testable actions) |
