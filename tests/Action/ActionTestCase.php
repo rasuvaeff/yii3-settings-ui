@@ -30,6 +30,8 @@ use Rasuvaeff\Yii3SettingsUi\Validation\SettingValueValidator;
 use Testo\Lifecycle\BeforeTest;
 use Yiisoft\Auth\IdentityInterface;
 use Yiisoft\Auth\IdentityRepositoryInterface;
+use Yiisoft\Router\CurrentRoute;
+use Yiisoft\Router\Route;
 use Yiisoft\Router\UrlGeneratorInterface;
 use Yiisoft\User\CurrentUser;
 
@@ -198,6 +200,21 @@ abstract class ActionTestCase
             currentUser: $currentUser ?? $this->currentUser(null),
             eventDispatcher: $eventDispatcher ?? Understudy::for(EventDispatcherInterface::class),
         );
+    }
+
+    /**
+     * `setRouteWithArguments()` is @internal in yiisoft/router, but calling it
+     * from tests is the documented way to populate a CurrentRoute without
+     * dispatching a real request.
+     *
+     * @param array<string, string> $arguments
+     */
+    protected function currentRoute(array $arguments = []): CurrentRoute
+    {
+        $currentRoute = new CurrentRoute();
+        $currentRoute->setRouteWithArguments(Route::get('/admin/settings/{key}/edit'), $arguments);
+
+        return $currentRoute;
     }
 
     protected function currentUser(?string $id): CurrentUser

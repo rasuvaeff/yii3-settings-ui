@@ -22,13 +22,26 @@ final class ActionTest extends ActionTestCase
         $renderer = $this->renderer();
         $action = new YiiEditAction(
             responder: $this->editResponder($renderer),
+            currentRoute: $this->currentRoute(['key' => 'mail.from']),
         );
 
-        $response = $action->__invoke('mail.from');
+        $response = $action->__invoke();
 
         Assert::same($response->getStatusCode(), Status::OK);
 
         verify(fn() => $renderer->render('edit'));
         Assert::same($this->renderedParameters()['key'], 'mail.from');
+    }
+
+    public function missingRouteArgumentDegradesToNotFound(): void
+    {
+        $action = new YiiEditAction(
+            responder: $this->editResponder($this->renderer()),
+            currentRoute: $this->currentRoute([]),
+        );
+
+        $response = $action->__invoke();
+
+        Assert::same($response->getStatusCode(), Status::NOT_FOUND);
     }
 }

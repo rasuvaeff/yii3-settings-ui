@@ -104,6 +104,11 @@ return [
 форка маршрутов. `RequestBodyParser` автоматически добавляется к POST-маршрутам
 (update, reset); чтобы отказаться, задайте `'body_parser' => false` в params.
 
+Actions читают аргумент маршрута `{key}` из внедрённого в конструктор
+`Yiisoft\Router\CurrentRoute`, поэтому работают с обычным middleware-диспатчером —
+привязка `HydratorAttributeParametersResolver` из `yiisoft/input-http` в приложении
+не требуется.
+
 URL и редиректы генерируются через роутер (`UrlGeneratorInterface`) по имени
 маршрута; ссылки остаются корректными под любым префиксом или поддоменом.
 Переопределите `route_names` в params, если приложение использует другую
@@ -160,9 +165,9 @@ SettingsRoutes::create(
 |---|---|
 | `SettingsRoutes` | Строит 4 маршрута; `fromParams($params)` — для группы, `create()` — для полного контроля |
 | `Yii\List\Action` | GET плоская сетка (Group/Key/Value/Type/Source), секреты маскированы |
-| `Yii\Edit\Action` | GET форма редактирования с учётом типа |
-| `Yii\Update\Action` | POST валидация + сохранение, повторный рендер при некорректном вводе |
-| `Yii\Reset\Action` | POST удаление переопределения -> config/default |
+| `Yii\Edit\Action` | GET форма редактирования с учётом типа; `{key}` — из внедрённого `CurrentRoute` |
+| `Yii\Update\Action` | POST валидация + сохранение, повторный рендер при некорректном вводе; `{key}` — из внедрённого `CurrentRoute` |
+| `Yii\Reset\Action` | POST удаление переопределения -> config/default; `{key}` — из внедрённого `CurrentRoute` |
 | `Form\SettingForm` | Введённые данные редактирования (`present` + `value`) |
 | `Validation\SettingValueValidator` | Валидирует и нормализует отправленный ввод по типу настройки (сообщения об ошибках без значений) |
 | `Renderer\TemplateRendererInterface` | Шов рендеринга (тестируемые actions) |

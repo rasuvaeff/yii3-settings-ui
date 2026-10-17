@@ -21,11 +21,26 @@ final class ActionTest extends ActionTestCase
         $provider = new RecordingWritableProvider();
         $action = new YiiResetAction(
             processor: $this->resetProcessor(provider: $provider),
+            currentRoute: $this->currentRoute(['key' => 'mail.from']),
         );
 
-        $response = $action->__invoke('mail.from');
+        $response = $action->__invoke();
 
         Assert::same($response->getStatusCode(), Status::FOUND);
         Assert::contains($provider->removeCalls, 'mail.from');
+    }
+
+    public function missingRouteArgumentDegradesToNotFound(): void
+    {
+        $provider = new RecordingWritableProvider();
+        $action = new YiiResetAction(
+            processor: $this->resetProcessor(provider: $provider),
+            currentRoute: $this->currentRoute([]),
+        );
+
+        $response = $action->__invoke();
+
+        Assert::same($response->getStatusCode(), Status::NOT_FOUND);
+        Assert::same($provider->removeCalls, []);
     }
 }
