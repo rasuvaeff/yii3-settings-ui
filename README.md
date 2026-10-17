@@ -99,7 +99,7 @@ return [
 
 `middlewares.{all,list,edit,update,reset}` — add middlewares per slot without forking the routes. `RequestBodyParser` is added automatically to the POST routes (update, reset); set `'body_parser' => false` in params to opt out.
 
-The actions read the `{key}` route argument from a constructor-injected `Yiisoft\Router\CurrentRoute`, so they work with a plain middleware dispatcher — no `yiisoft/input-http` `HydratorAttributeParametersResolver` binding is required in the host app.
+The actions read the `{key}` route argument from a constructor-injected `Yiisoft\Router\CurrentRoute`, so they work with a plain middleware dispatcher — no `yiisoft/input-http` `HydratorAttributeParametersResolver` binding is required in the host app. (The `->action(SomeAction::class)` route form the package ships needs `yiisoft/middleware-dispatcher` 5.2+, which every current `yiisoft/router` application resolves.)
 
 URLs and redirects are generated through the router (`UrlGeneratorInterface`) by route name; links stay correct under any prefix or subdomain. Override `route_names` in params when your app uses a different naming convention.
 

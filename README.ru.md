@@ -107,7 +107,9 @@ return [
 Actions читают аргумент маршрута `{key}` из внедрённого в конструктор
 `Yiisoft\Router\CurrentRoute`, поэтому работают с обычным middleware-диспатчером —
 привязка `HydratorAttributeParametersResolver` из `yiisoft/input-http` в приложении
-не требуется.
+не требуется. (Форма роутов `->action(SomeAction::class)`, которую поставляет пакет,
+требует `yiisoft/middleware-dispatcher` 5.2+ — он резолвится в любом актуальном
+приложении на `yiisoft/router`.)
 
 URL и редиректы генерируются через роутер (`UrlGeneratorInterface`) по имени
 маршрута; ссылки остаются корректными под любым префиксом или поддоменом.

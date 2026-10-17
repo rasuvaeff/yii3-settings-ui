@@ -9,6 +9,10 @@
   argument (edit, update, reset) answered 400 because the action was never invoked. `yiisoft/input-http`
   is no longer needed at all. Breaking: `Yii\Edit\Action`, `Yii\Update\Action` and `Yii\Reset\Action`
   take `CurrentRoute` in the constructor and no longer accept a hydrated `$key` parameter.
+  The `->action(SomeAction::class)` route form the package ships needs
+  `yiisoft/middleware-dispatcher` 5.2+ (invokable class-name definitions); the
+  `require-dev` floor now pins it so the suite tests against a dispatcher the
+  routes actually work on.
   Fixes #15.
 
 ## 1.0.2 — 2026-06-30
