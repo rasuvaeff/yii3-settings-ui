@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Mutation testing now counts code the tests execute without naming it in `#[Covers]`
+  (`infection --with-uncovered`), with `PublicVisibility` off as in the monorepo
+  template; overall MSI 86% (was 81% with uncovered code counted under the old mutator set). No `src/` or test changes.
+
 ## 2.0.0 — 2026-10-17
 
 - Actions read the `{key}` route argument from constructor-injected `Yiisoft\Router\CurrentRoute`
