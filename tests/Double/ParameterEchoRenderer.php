@@ -14,7 +14,7 @@ use Rasuvaeff\Yii3SettingsUi\Renderer\TemplateRendererInterface;
  * parameters into the response body, so dispatch-level tests can assert that
  * a route argument actually reached the template.
  */
-final class ParameterEchoRenderer implements TemplateRendererInterface
+final readonly class ParameterEchoRenderer implements TemplateRendererInterface
 {
     public function __construct(
         private ResponseFactoryInterface $responseFactory,
